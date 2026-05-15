@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYOA Composer • Simple Illustrated Story Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', system_ui, sans-serif; }
+        .passage-item.active { background-color: #1f2937; border-color: #3b82f6; }
+        .monaco-like { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200">
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="min-h-screen flex items-center justify-center p-6">
+        <div class="max-w-md w-full text-center">
+            <div class="mb-8">
+                <div class="w-16 h-16 mx-auto bg-zinc-800 rounded-3xl flex items-center justify-center mb-4">
+                    <i class="fa-solid fa-book text-4xl text-emerald-400"></i>
+                </div>
+                <h1 class="text-4xl font-bold tracking-tight">CYOA Composer</h1>
+                <p class="text-zinc-400 mt-2">Create beautiful illustrated choose-your-own-adventure stories</p>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="startTutorial()" 
+                        class="w-full py-4 bg-zinc-800 hover:bg-zinc-700 rounded-3xl text-lg font-medium flex items-center justify-center gap-x-3">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Start Tutorial</span>
+                </button>
+                
+                <button onclick="enterComposer()" 
+                        class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 rounded-3xl text-lg font-medium flex items-center justify-center gap-x-3">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Open Composer</span>
+                </button>
+            </div>
+
+            <p class="text-xs text-zinc-500 mt-8">Supports images, videos, and audio clips</p>
+        </div>
+    </div>
+
+    <!-- Tutorial Screen -->
+    <div id="tutorial-screen" class="hidden min-h-screen p-6 max-w-3xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold">How to Use the Composer</h2>
+            <button onclick="enterComposer()" class="px-5 py-2 bg-emerald-600 rounded-2xl text-sm">Skip to Composer</button>
+        </div>
+
+        <div class="space-y-8 text-zinc-300">
+            <div>
+                <h3 class="font-semibold text-xl mb-2 flex items-center gap-x-2">
+                    <span class="text-emerald-400">1.</span> Create Passages
+                </h3>
+                <p class="text-zinc-400">Click the <strong>"New"</strong> button in the sidebar to add new passages. Each passage is one "page" or scene in your story.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-xl mb-2 flex items-center gap-x-2">
+                    <span class="text-emerald-400">2.</span> Add Media (Images or Videos)
+                </h3>
+                <p class="text-zinc-400">Upload an image or video for each passage. Supported formats include JPG, PNG, WebP, GIF, MP4, and WebM. These will be embedded in your final story.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-xl mb-2 flex items-center gap-x-2">
+                    <span class="text-emerald-400">3.</span> Write Your Story
+                </h3>
+                <p class="text-zinc-400">Use the text area to write what happens in that passage. You can make it as long or short as you like.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-xl mb-2 flex items-center gap-x-2">
+                    <span class="text-emerald-400">4.</span> Add Choices &amp; Create Branching
+                </h3>
+                <p class="text-zinc-400 mb-2">Click <strong>"Add Choice"</strong> to create options for the player. For each choice:</p>
+                <ul class="list-disc pl-5 text-zinc-400 space-y-1 text-sm mb-2">
+                    <li>Type what the player can say or do</li>
+                    <li>Use the dropdown to select the <strong>target passage</strong> (it lists all your passages by their titles)</li>
+                </ul>
+                <p class="text-sm text-zinc-400">The <strong>title</strong> you give a passage is also used as its identifier in the choice dropdown. This is how navigation/branching works — descriptive titles make connecting passages much easier.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-xl mb-2 flex items-center gap-x-2">
+                    <span class="text-emerald-400">5.</span> Add Audio (Optional)
+                </h3>
+                <p class="text-zinc-400">Upload an audio clip to a passage for voice acting, sound effects, or music. By default it will <strong>auto-play</strong> when the player reaches that passage. You can toggle auto-play off per passage if you prefer.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-xl mb-2 flex items-center gap-x-2">
+                    <span class="text-emerald-400">6.</span> Save &amp; Manage Projects
+                </h3>
+                <p class="text-zinc-400">Use <strong>"Save to Projects"</strong> to save your work inside the browser. Click <strong>"My Projects"</strong> to see all your saved stories, load them, or export them as JSON files for backup.</p>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-xl mb-2 flex items-center gap-x-2">
+                    <span class="text-emerald-400">7.</span> Preview &amp; Export HTML
+                </h3>
+                <p class="text-zinc-400">Use the <strong>Preview</strong> button to test your story. When finished, click <strong>Export HTML</strong> to download a complete standalone file.</p>
+            </div>
+        </div>
+
+        <div class="mt-10 text-center">
+            <button onclick="enterComposer()" 
+                    class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-3xl font-medium">
+                Start Building →
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Composer App -->
+    <div id="main-app" class="hidden flex h-screen">
+        <!-- Sidebar: Passages List -->
+        <div class="w-72 border-r border-zinc-800 flex flex-col">
+            <div class="p-4 border-b border-zinc-800 flex items-center justify-between">
+                <div>
+                    <h1 class="font-semibold text-xl">CYOA Composer</h1>
+                    <p class="text-xs text-zinc-500">Simple Illustrated Stories</p>
+                </div>
+                <button onclick="addNewPassage()" 
+                        class="px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-xl flex items-center gap-x-2">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>New</span>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-auto p-2" id="passages-list">
+                <!-- Populated by JS -->
+            </div>
+
+            <div class="p-4 border-t border-zinc-800 text-xs text-zinc-500 space-y-3">
+                <div class="flex justify-between items-center">
+                    <div>Passages: <span id="passage-count">0</span></div>
+                </div>
+
+                <div class="text-[10px] text-zinc-500">
+                    Per-passage audio clips supported
+                </div>
+
+                <!-- Project Management -->
+                <div class="flex gap-2">
+                    <button onclick="saveToMyProjects()" 
+                            class="flex-1 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex items-center justify-center gap-x-2 text-xs">
+                        <i class="fa-solid fa-bookmark"></i>
+                        <span>Save to Projects</span>
+                    </button>
+                    <button onclick="showProjectsModal()" 
+                            class="flex-1 px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-xl flex items-center justify-center gap-x-2 text-xs">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <span>My Projects</span>
+                    </button>
+                </div>
+
+                <button onclick="exportStory()" 
+                        class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded-xl flex items-center justify-center gap-x-2">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Export HTML</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Editor -->
+        <div class="flex-1 flex flex-col">
+            <!-- Top Bar -->
+            <div class="h-14 border-b border-zinc-800 px-6 flex items-center justify-between bg-zinc-900">
+                <div class="flex items-center gap-x-3">
+                    <input id="story-title" type="text" value="My Illustrated Story" 
+                           class="bg-transparent text-xl font-semibold focus:outline-none w-80">
+                </div>
+                <div class="flex items-center gap-x-2">
+                    <button onclick="previewStory()" 
+                            class="px-4 py-2 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-2xl flex items-center gap-x-2">
+                        <i class="fa-solid fa-eye"></i>
+                        <span>Preview</span>
+                    </button>
+                    <button onclick="exportStory()" 
+                            class="px-5 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 rounded-2xl flex items-center gap-x-2 font-medium">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Export HTML</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Editor Area -->
+            <div class="flex-1 p-6 overflow-auto">
+                <div id="editor-panel" class="max-w-3xl mx-auto hidden">
+                    <div class="mb-4">
+                        <label class="text-xs text-zinc-400 block mb-1">PASSAGE TITLE</label>
+                        <input id="edit-title" type="text" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-4 py-3 text-lg focus:outline-none focus:border-zinc-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="text-xs text-zinc-400 block mb-1">PASSAGE TEXT</label>
+                        <textarea id="edit-text" rows="8" 
+                                  class="w-full bg-zinc-900 border border-zinc-700 rounded-3xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-500 monaco-like"></textarea>
+                    </div>
+
+                    <!-- Media Section -->
+                    <div class="mb-6">
+                        <label class="text-xs text-zinc-400 block mb-2">ILLUSTRATION / VIDEO</label>
+                        
+                        <div class="flex gap-4">
+                            <!-- Media Preview -->
+                            <div class="w-48 h-32 border border-zinc-700 rounded-2xl overflow-hidden bg-zinc-900 flex items-center justify-center" id="media-preview-container">
+                                <img id="media-preview-img" class="max-h-full hidden object-cover w-full h-full">
+                                <video id="media-preview-video" class="max-h-full hidden w-full h-full" controls></video>
+                                <div id="media-placeholder" class="text-center text-zinc-500">
+                                    <i class="fa-solid fa-image text-3xl mb-2"></i>
+                                    <div class="text-xs">No media</div>
+                                </div>
+                            </div>
+
+                            <div class="flex-1">
+                                <input type="file" id="media-upload" accept="image/*,video/*,.mp4,.webm,.mov,.jpg,.jpeg,.png,.gif,.webp" class="hidden" onchange="handleMediaUpload(event)">
+                                <button onclick="document.getElementById('media-upload').click()" 
+                                        class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-2xl text-sm flex items-center gap-x-2">
+                                    <i class="fa-solid fa-upload"></i>
+                                    <span>Upload Image or Video</span>
+                                </button>
+                                
+                                <div class="mt-3 text-[10px] text-zinc-500">
+                                    Images and MP4 videos are embedded in the export
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Per-Passage Audio Clip -->
+                    <div class="mb-6">
+                        <label class="text-xs text-zinc-400 block mb-2">PERFORMANCE / AUDIO CLIP</label>
+                        <div class="flex items-center gap-3">
+                            <button onclick="uploadPassageAudio()" 
+                                    class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-2xl text-sm flex items-center gap-x-2">
+                                <i class="fa-solid fa-microphone"></i>
+                                <span>Upload Audio Clip</span>
+                            </button>
+                            <div id="passage-audio-status" class="text-xs text-emerald-400"></div>
+                        </div>
+                        <div class="text-[10px] text-zinc-500 mt-1">Short audio that plays when entering this passage</div>
+                    </div>
+
+                    <!-- Choices -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs text-zinc-400">CHOICES</label>
+                            <button onclick="addChoice()" class="text-xs px-3 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex items-center gap-x-1">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>Add Choice</span>
+                            </button>
+                        </div>
+                        
+                        <div id="choices-list" class="space-y-2">
+                            <!-- Choices added dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="no-passage-selected" class="max-w-md mx-auto text-center py-16 text-zinc-400">
+                    <i class="fa-solid fa-book text-4xl mb-4"></i>
+                    <p>Select a passage from the sidebar or create a new one.</p>
+                </div>
+            </div>
+        </div>
+    </div> <!-- end main-app -->
+
+    <script>
+        let passages = {};
+        let currentPassageId = null;
+        let passageCounter = 1;
+        let backgroundAudio = null; // { name, data }
+
+        function generateId() {
+            return 'p' + Date.now() + '_' + passageCounter++;
+        }
+
+        function updatePassagesList() {
+            const container = document.getElementById('passages-list');
+            container.innerHTML = '';
+
+            Object.keys(passages).forEach(id => {
+                const p = passages[id];
+                const div = document.createElement('div');
+                div.className = `passage-item px-4 py-3 rounded-2xl mb-1 cursor-pointer border border-transparent hover:border-zinc-700 flex justify-between items-center ${currentPassageId === id ? 'active' : ''}`;
+                div.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium truncate">${p.title || 'Untitled Passage'}</div>
+                        <div class="text-xs text-zinc-500">${p.choices ? p.choices.length : 0} choices</div>
+                    </div>
+                    <button onclick="event.stopImmediatePropagation(); deletePassage('${id}')" class="text-red-400 hover:text-red-500 px-2">
+                        <i class="fa-solid fa-trash text-xs"></i>
+                    </button>
+                `;
+                div.onclick = () => selectPassage(id);
+                container.appendChild(div);
+            });
+
+            document.getElementById('passage-count').textContent = Object.keys(passages).length;
+            updateBackgroundAudioStatus();
+        }
+
+        function updateBackgroundAudioStatus() {
+            const status = document.getElementById('bg-audio-status');
+            if (!status) return;
+            if (backgroundAudio) {
+                status.innerHTML = `<span class="text-emerald-400">${backgroundAudio.name}</span>`;
+            } else {
+                status.textContent = 'No background track';
+            }
+        }
+
+        function uploadBackgroundAudio() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*,.mp3,.wav,.ogg,.m4a,.flac';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    backgroundAudio = {
+                        name: file.name,
+                        data: ev.target.result
+                    };
+                    updateBackgroundAudioStatus();
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        function selectPassage(id) {
+            currentPassageId = id;
+            const passage = passages[id];
+
+            document.getElementById('no-passage-selected').classList.add('hidden');
+            document.getElementById('editor-panel').classList.remove('hidden');
+
+            document.getElementById('edit-title').value = passage.title || '';
+            document.getElementById('edit-text').value = passage.text || '';
+
+            // Media preview
+            updateMediaPreview();
+            renderAudioControls();
+
+            // Render choices
+            renderChoices(passage);
+
+            updatePassagesList();
+        }
+
+        function renderChoices(passage) {
+            const container = document.getElementById('choices-list');
+            container.innerHTML = '';
+
+            if (!passage.choices) passage.choices = [];
+
+            passage.choices.forEach((choice, index) => {
+                const div = document.createElement('div');
+                div.className = 'flex gap-2 items-center bg-zinc-900 border border-zinc-700 rounded-2xl px-3 py-2';
+                div.innerHTML = `
+                    <input type="text" value="${choice.text}" placeholder="Choice text..." 
+                           class="flex-1 bg-transparent focus:outline-none text-sm" 
+                           onchange="updateChoice(${index}, this.value)">
+                    
+                    <select class="bg-zinc-800 border border-zinc-600 rounded-xl px-3 py-1 text-sm" 
+                            onchange="updateChoiceTarget(${index}, this.value)">
+                        <option value="">Select target...</option>
+                        ${Object.keys(passages).map(pid => 
+                            `<option value="${pid}" ${choice.next === pid ? 'selected' : ''}>
+                                ${passages[pid].title || pid}
+                            </option>`
+                        ).join('')}
+                    </select>
+
+                    <button onclick="removeChoice(${index})" class="text-red-400 hover:text-red-500 px-2">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateChoice(index, newText) {
+            if (!currentPassageId) return;
+            passages[currentPassageId].choices[index].text = newText;
+        }
+
+        function updateChoiceTarget(index, targetId) {
+            if (!currentPassageId) return;
+            passages[currentPassageId].choices[index].next = targetId;
+        }
+
+        function removeChoice(index) {
+            if (!currentPassageId) return;
+            passages[currentPassageId].choices.splice(index, 1);
+            renderChoices(passages[currentPassageId]);
+        }
+
+        function addChoice() {
+            if (!currentPassageId) return;
+            if (!passages[currentPassageId].choices) passages[currentPassageId].choices = [];
+            
+            passages[currentPassageId].choices.push({
+                text: "New choice",
+                next: Object.keys(passages)[0] || ""
+            });
+            renderChoices(passages[currentPassageId]);
+        }
+
+        function handleMediaUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !currentPassageId) return;
+
+            const isVideo = file.type.startsWith('video/');
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+
+                passages[currentPassageId].media = {
+                    type: isVideo ? 'video' : 'image',
+                    data: base64
+                };
+                passages[currentPassageId].image = base64;
+
+                updateMediaPreview();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function uploadPassageAudio() {
+            if (!currentPassageId) return;
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*,.mp3,.wav,.ogg,.m4a,.flac';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    passages[currentPassageId].audio = {
+                        name: file.name,
+                        data: ev.target.result,
+                        autoPlay: true
+                    };
+                    document.getElementById('passage-audio-status').innerHTML = 
+                        `<span class="text-emerald-400">${file.name}</span>`;
+                    renderAudioControls();
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        function renderAudioControls() {
+            const statusEl = document.getElementById('passage-audio-status');
+            if (!currentPassageId || !passages[currentPassageId].audio) {
+                if (statusEl) statusEl.innerHTML = '';
+                return;
+            }
+
+            const audio = passages[currentPassageId].audio;
+            const isAutoPlay = audio.autoPlay !== false;
+
+            statusEl.innerHTML = `
+                <div class="flex items-center gap-x-3 mt-1 text-xs">
+                    <span class="text-emerald-400">${audio.name}</span>
+                    
+                    <label class="flex items-center gap-x-1 cursor-pointer">
+                        <input type="checkbox" ${isAutoPlay ? 'checked' : ''} 
+                               onchange="toggleAudioAutoPlay(this.checked)">
+                        <span class="text-zinc-400">Auto-play</span>
+                    </label>
+                    
+                    <button onclick="removePassageAudio()" class="text-red-400 hover:text-red-500">Remove</button>
+                </div>
+            `;
+        }
+
+        function toggleAudioAutoPlay(checked) {
+            if (!currentPassageId || !passages[currentPassageId].audio) return;
+            passages[currentPassageId].audio.autoPlay = checked;
+        }
+
+        function removePassageAudio() {
+            if (!currentPassageId) return;
+            delete passages[currentPassageId].audio;
+            const statusEl = document.getElementById('passage-audio-status');
+            if (statusEl) statusEl.innerHTML = '';
+        }
+
+        // === JSON Save / Load Project ===
+        function saveProject() {
+            const projectData = {
+                version: 1,
+                storyTitle: document.getElementById('story-title').value || "Untitled Story",
+                passages: passages,
+                savedAt: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (projectData.storyTitle.replace(/\s+/g, '_') || 'cyoa_project') + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function loadProject() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,application/json';
+
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+
+                        if (!data.passages) {
+                            alert("Invalid project file.");
+                            return;
+                        }
+
+                        passages = data.passages;
+                        if (data.storyTitle) {
+                            document.getElementById('story-title').value = data.storyTitle;
+                        }
+
+                        currentPassageId = null;
+                        updatePassagesList();
+
+                        const firstId = Object.keys(passages)[0];
+                        if (firstId) {
+                            selectPassage(firstId);
+                        } else {
+                            document.getElementById('editor-panel').classList.add('hidden');
+                            document.getElementById('no-passage-selected').classList.remove('hidden');
+                        }
+
+                        alert("Project loaded successfully!");
+                    } catch (err) {
+                        alert("Failed to load project. The file might be corrupted.");
+                        console.error(err);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        // === Project Manager (Internal Save/Load) ===
+        const PROJECTS_KEY = 'cyoa_projects';
+
+        function getSavedProjects() {
+            try {
+                return JSON.parse(localStorage.getItem(PROJECTS_KEY)) || {};
+            } catch {
+                return {};
+            }
+        }
+
+        function saveToMyProjects() {
+            if (Object.keys(passages).length === 0) {
+                alert("Nothing to save yet.");
+                return;
+            }
+
+            const name = prompt("Enter a name for this project:", document.getElementById('story-title').value || "Untitled Story");
+            if (!name) return;
+
+            const projects = getSavedProjects();
+
+            projects[name] = {
+                storyTitle: name,
+                passages: passages,
+                savedAt: new Date().toISOString()
+            };
+
+            localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+            alert(`Project "${name}" saved to My Projects.`);
+        }
+
+        function showProjectsModal() {
+            const projects = getSavedProjects();
+            const projectNames = Object.keys(projects);
+
+            if (projectNames.length === 0) {
+                alert("No saved projects yet. Use 'Save to Projects' first.");
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-6';
+
+            let html = `
+                <div class="bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-lg max-h-[80vh] flex flex-col">
+                    <div class="px-6 py-4 border-b border-zinc-700 flex justify-between items-center">
+                        <div class="font-semibold text-lg">My Projects</div>
+                        <button onclick="this.closest('.fixed').remove()" class="text-2xl leading-none text-zinc-400 hover:text-white">&times;</button>
+                    </div>
+                    <div class="flex-1 overflow-auto p-4 space-y-2">
+            `;
+
+            projectNames.forEach(name => {
+                const proj = projects[name];
+                const date = new Date(proj.savedAt).toLocaleDateString();
+                html += `
+                    <div class="bg-zinc-800 rounded-2xl p-4 flex justify-between items-center">
+                        <div>
+                            <div class="font-medium">${name}</div>
+                            <div class="text-xs text-zinc-500">${date}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="loadSavedProject('${name}'); this.closest('.fixed').remove();" 
+                                    class="px-4 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 rounded-xl">Load</button>
+                            <button onclick="exportSavedProject('${name}'); this.closest('.fixed').remove();" 
+                                    class="px-3 py-1.5 text-xs bg-zinc-700 hover:bg-zinc-600 rounded-xl">Export</button>
+                            <button onclick="deleteSavedProject('${name}', this)" 
+                                    class="px-3 py-1.5 text-xs bg-red-900/60 hover:bg-red-800 rounded-xl">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div></div>`;
+            modal.innerHTML = html;
+            document.body.appendChild(modal);
+        }
+
+        function loadSavedProject(name) {
+            const projects = getSavedProjects();
+            const project = projects[name];
+            if (!project) return;
+
+            passages = project.passages;
+            document.getElementById('story-title').value = project.storyTitle || name;
+
+            currentPassageId = null;
+            updatePassagesList();
+
+            const firstId = Object.keys(passages)[0];
+            if (firstId) {
+                selectPassage(firstId);
+            }
+        }
+
+        function exportSavedProject(name) {
+            const projects = getSavedProjects();
+            const project = projects[name];
+            if (!project) return;
+
+            const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name.replace(/\s+/g, '_') + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function deleteSavedProject(name, element) {
+            if (!confirm(`Delete project "${name}"?`)) return;
+
+            const projects = getSavedProjects();
+            delete projects[name];
+            localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+
+            // Remove the row from the modal
+            element.closest('.bg-zinc-800').remove();
+        }
+
+        function updateMediaPreview() {
+            if (!currentPassageId) return;
+            const passage = passages[currentPassageId];
+            const img = document.getElementById('media-preview-img');
+            const video = document.getElementById('media-preview-video');
+            const placeholder = document.getElementById('media-placeholder');
+
+            img.classList.add('hidden');
+            video.classList.add('hidden');
+            placeholder.classList.add('hidden');
+
+            if (passage.media && passage.media.type === 'video') {
+                video.src = passage.media.data;
+                video.classList.remove('hidden');
+            } else if (passage.image) {
+                img.src = passage.image;
+                img.classList.remove('hidden');
+            } else {
+                placeholder.classList.remove('hidden');
+            }
+        }
+
+        function addNewPassage() {
+            const id = generateId();
+            passages[id] = {
+                id: id,
+                title: `Passage ${Object.keys(passages).length + 1}`,
+                text: "Write your passage here...",
+                image: null,
+                choices: []
+            };
+
+            updatePassagesList();
+            selectPassage(id);
+        }
+
+        function deletePassage(id) {
+            if (confirm('Delete this passage?')) {
+                delete passages[id];
+                if (currentPassageId === id) {
+                    currentPassageId = null;
+                    document.getElementById('editor-panel').classList.add('hidden');
+                    document.getElementById('no-passage-selected').classList.remove('hidden');
+                }
+                updatePassagesList();
+            }
+        }
+
+        // Save changes when editing
+        function setupAutoSave() {
+            const titleInput = document.getElementById('edit-title');
+            const textInput = document.getElementById('edit-text');
+
+            titleInput.oninput = () => {
+                if (currentPassageId) passages[currentPassageId].title = titleInput.value;
+                updatePassagesList();
+            };
+
+            textInput.oninput = () => {
+                if (currentPassageId) passages[currentPassageId].text = textInput.value;
+            };
+        }
+
+        function previewStory() {
+            if (Object.keys(passages).length === 0) {
+                alert("Add some passages first!");
+                return;
+            }
+
+            // Create preview modal
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-6';
+            modal.innerHTML = `
+                <div class="bg-zinc-900 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-zinc-700">
+                    <div class="flex justify-between items-center px-6 py-4 border-b border-zinc-700">
+                        <div class="font-semibold">Preview</div>
+                        <button class="text-zinc-400 hover:text-white text-2xl leading-none" onclick="this.closest('.fixed').remove()">&times;</button>
+                    </div>
+                    <div class="flex-1 overflow-auto p-6" id="preview-content"></div>
+                    <div class="p-4 border-t border-zinc-700 text-xs text-zinc-500 text-center">
+                        This is a live preview. Click choices to navigate.
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const content = modal.querySelector('#preview-content');
+            let currentPreviewId = Object.keys(passages)[0];
+
+            function renderPreview(id) {
+                const passage = passages[id];
+                if (!passage) return;
+
+                let mediaHTML = '';
+                if (passage.media && passage.media.type === 'video') {
+                    mediaHTML = `<video src="${passage.media.data}" class="w-full rounded-2xl mb-6" controls></video>`;
+                } else if (passage.image) {
+                    mediaHTML = `<img src="${passage.image}" class="w-full rounded-2xl mb-6">`;
+                }
+
+                const choicesHTML = (passage.choices || []).map(choice => 
+                    `<button onclick="window.__previewRender('${choice.next}')" 
+                             class="w-full text-left px-6 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-3xl flex justify-between items-center mb-2">
+                        <span>${choice.text}</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>`
+                ).join('');
+
+                content.innerHTML = `
+                    <div class="max-w-2xl mx-auto">
+                        ${mediaHTML}
+                        <h2 class="text-3xl font-semibold mb-4">${passage.title}</h2>
+                        <div class="text-lg leading-relaxed whitespace-pre-line mb-8">${passage.text}</div>
+                        <div class="space-y-2">
+                            ${choicesHTML || '<div class="text-zinc-400">No choices yet</div>'}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Expose render function to buttons
+            window.__previewRender = function(id) {
+                renderPreview(id);
+            };
+
+            renderPreview(currentPreviewId);
+        }
+
+        function exportStory() {
+            if (Object.keys(passages).length === 0) {
+                alert("Nothing to export yet!");
+                return;
+            }
+
+            const storyTitle = document.getElementById('story-title').value || "My Illustrated Story";
+
+            // Create the final HTML
+            let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${storyTitle}</title>
+<script src="https://cdn.tailwindcss.com"><\/script>
+<style>
+body { font-family: system-ui, sans-serif; background: #111827; color: #e5e7eb; }
+.passage { max-width: 720px; margin: 40px auto; background: #1f2937; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); }
+</style>
+</head>
+<body class="bg-zinc-950 text-zinc-200">
+<div class="max-w-3xl mx-auto p-6">
+<h1 class="text-4xl font-bold mb-8 text-center">${storyTitle}</h1>
+<div id="story-container"></div>
+</div>
+
+<script>
+const passages = ${JSON.stringify(passages)};
+
+let currentId = Object.keys(passages)[0];
+
+function renderPassage(id) {
+    const passage = passages[id];
+    if (!passage) return;
+
+    let mediaHTML = '';
+    if (passage.media && passage.media.type === 'video') {
+        mediaHTML = \`<video src="\${passage.media.data}" class="w-full" controls></video>\`;
+    } else if (passage.image) {
+        mediaHTML = \`<img src="\${passage.image}" class="w-full">\`;
+    }
+
+    // Per-passage audio
+    let audioHTML = '';
+    if (passage.audio && passage.audio.data) {
+        const autoPlayAttr = (passage.audio.autoPlay !== false) ? 'autoplay' : '';
+        audioHTML = \`
+            <div class="px-8 pb-4">
+                <audio src="\${passage.audio.data}" ${autoPlayAttr} controls class="w-full"></audio>
+            </div>
+        \`;
+    }
+
+    const container = document.getElementById('story-container');
+    container.innerHTML = \`
+        <div class="passage">
+            \${mediaHTML}
+            <div class="p-8">
+                <h2 class="text-3xl font-semibold mb-4">\${passage.title}</h2>
+                <div class="text-lg leading-relaxed whitespace-pre-line mb-4">\${passage.text}</div>
+                \${audioHTML}
+                
+                <div class="space-y-3">
+                    \${(passage.choices || []).map(choice => \`
+                        <button onclick="renderPassage('\${choice.next}')" 
+                                class="w-full text-left px-6 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-3xl flex justify-between items-center">
+                            <span>\${choice.text}</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    \`).join('')}
+                </div>
+            </div>
+        </div>
+    \`;
+}
+
+renderPassage(currentId);
+<\/script>
+</body>
+</html>`;
+
+            // Download the file
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = storyTitle.replace(/\s+/g, '_') + '.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize with one passage
+        function init() {
+            setupAutoSave();
+
+            // Create starting passage
+            const startId = generateId();
+            passages[startId] = {
+                id: startId,
+                title: "The Beginning",
+                text: "Write the opening of your story here...",
+                image: null,
+                choices: []
+            };
+
+            updatePassagesList();
+            selectPassage(startId);
+        }
+
+        function startTutorial() {
+            document.getElementById('splash-screen').classList.add('hidden');
+            document.getElementById('tutorial-screen').classList.remove('hidden');
+        }
+
+        function enterComposer() {
+            document.getElementById('splash-screen').classList.add('hidden');
+            document.getElementById('tutorial-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
