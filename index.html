@@ -125,7 +125,7 @@
                 <button onclick="addNewPassage()" 
                         class="px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded-xl flex items-center gap-x-2">
                     <i class="fa-solid fa-plus text-xs"></i>
-                    <span>New</span>
+                    <span>New Scene</span>
                 </button>
             </div>
 
@@ -190,17 +190,33 @@
             <div class="flex-1 p-6 overflow-auto">
                 <div id="editor-panel" class="max-w-3xl mx-auto hidden">
                     <div class="mb-4">
-                        <label class="text-xs text-zinc-400 block mb-1">PASSAGE TITLE</label>
+                        <label class="text-xs text-zinc-400 block mb-1">SCENE TITLE</label>
                         <input id="edit-title" type="text" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-4 py-3 text-lg focus:outline-none focus:border-zinc-500">
                     </div>
 
                     <div class="mb-4">
-                        <label class="text-xs text-zinc-400 block mb-1">PASSAGE TEXT</label>
+                        <label class="text-xs text-zinc-400 block mb-1">SCENE TEXT</label>
                         <textarea id="edit-text" rows="8" 
                                   class="w-full bg-zinc-900 border border-zinc-700 rounded-3xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-500 monaco-like"></textarea>
                     </div>
 
-                    <!-- Media Section -->
+                    <!-- Choices Section - Prominent and right after text -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <label class="text-sm font-medium text-zinc-300">CHOICES</label>
+                            <button onclick="addChoice()" 
+                                    class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-2xl flex items-center gap-x-2 shadow-sm">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Add Choice</span>
+                            </button>
+                        </div>
+                        
+                        <div id="choices-list" class="space-y-2">
+                            <!-- Choices added dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Media Section (moved below choices) -->
                     <div class="mb-6">
                         <label class="text-xs text-zinc-400 block mb-2">ILLUSTRATION / VIDEO</label>
                         
@@ -242,21 +258,6 @@
                             <div id="passage-audio-status" class="text-xs text-emerald-400"></div>
                         </div>
                         <div class="text-[10px] text-zinc-500 mt-1">Short audio that plays when entering this passage</div>
-                    </div>
-
-                    <!-- Choices -->
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label class="text-xs text-zinc-400">CHOICES</label>
-                            <button onclick="addChoice()" class="text-xs px-3 py-1 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex items-center gap-x-1">
-                                <i class="fa-solid fa-plus text-[10px]"></i>
-                                <span>Add Choice</span>
-                            </button>
-                        </div>
-                        
-                        <div id="choices-list" class="space-y-2">
-                            <!-- Choices added dynamically -->
-                        </div>
                     </div>
                 </div>
 
@@ -378,6 +379,12 @@
                         ).join('')}
                     </select>
 
+                    <button onclick="createAndLinkNewScene(${index})" 
+                            class="text-xs px-2.5 py-1 bg-emerald-700 hover:bg-emerald-600 rounded-xl flex items-center gap-x-1">
+                        <i class="fa-solid fa-plus text-[10px]"></i>
+                        <span>New Scene</span>
+                    </button>
+
                     <button onclick="removeChoice(${index})" class="text-red-400 hover:text-red-500 px-2">
                         <i class="fa-solid fa-times"></i>
                     </button>
@@ -411,6 +418,33 @@
                 next: Object.keys(passages)[0] || ""
             });
             renderChoices(passages[currentPassageId]);
+        }
+
+        function createAndLinkNewScene(choiceIndex) {
+            if (!currentPassageId) return;
+
+            // Create a new scene
+            const newId = generateId();
+            const newTitle = `Scene ${Object.keys(passages).length + 1}`;
+            passages[newId] = {
+                id: newId,
+                title: newTitle,
+                text: "",
+                image: null,
+                media: null,
+                audio: null,
+                choices: []
+            };
+
+            // Link the current choice to the new scene
+            passages[currentPassageId].choices[choiceIndex].next = newId;
+
+            // Refresh UI
+            updatePassagesList();
+            renderChoices(passages[currentPassageId]);
+
+            // Auto-forward to the newly created scene
+            selectPassage(newId);
         }
 
         function handleMediaUpload(event) {
@@ -662,13 +696,41 @@
             const project = projects[name];
             if (!project) return;
 
-            const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+            const storyTitle = project.storyTitle || name;
+            const savedPassages = project.passages || {};
+
+            // Build a full standalone HTML story from the saved project
+            let html = '<!DOCTYPE html>\n<html lang="en">\n<head>\n';
+            html += '<meta charset="UTF-8">\n';
+            html += '<title>' + storyTitle + '</title>\n';
+            html += '<script src="https://cdn.tailwindcss.com"><\/script>\n';
+            html += '<style>body{font-family:system-ui,sans-serif;background:#111827;color:#e5e7eb}.passage{max-width:720px;margin:40px auto;background:#1f2937;border-radius:20px;overflow:hidden;box-shadow:0 25px 50px -12px rgb(0 0 0 / 0.4)}</style>\n';
+            html += '</head>\n<body class="bg-zinc-950 text-zinc-200">\n';
+            html += '<div class="max-w-3xl mx-auto p-6">\n';
+            html += '<h1 class="text-4xl font-bold mb-8 text-center">' + storyTitle + '</h1>\n';
+            html += '<div id="story-container"></div>\n';
+            html += '</div>\n\n<script>\n';
+            html += 'const passages = ' + JSON.stringify(savedPassages) + ';\n\n';
+            html += 'let currentId = Object.keys(passages)[0];\n\n';
+            html += 'function renderPassage(id){\n';
+            html += '  const p = passages[id]; if(!p) return;\n';
+            html += '  let m = ""; if(p.media&&p.media.type==="video") m=`<video src="${p.media.data}" class="w-full" controls></video>`; else if(p.image) m=`<img src="${p.image}" class="w-full">`;\n';
+            html += '  let a = ""; if(p.audio&&p.audio.data){ const ap = (p.audio.autoPlay!==false)?"autoplay":""; a=`<div class="px-8 pb-4"><audio src="${p.audio.data}" ${ap} controls class="w-full"></audio></div>`; }\n';
+            html += '  document.getElementById("story-container").innerHTML = `\n';
+            html += '    <div class="passage">\n${m}\n<div class="p-8">\n<h2 class="text-3xl font-semibold mb-4">${p.title}</h2>\n<div class="text-lg leading-relaxed whitespace-pre-line mb-4">${p.text}</div>\n${a}\n<div class="space-y-3">\n${(p.choices||[]).map(c=>`<button onclick="renderPassage(\'${c.next}\')" class="w-full text-left px-6 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-3xl flex justify-between items-center"><span>${c.text}</span><i class="fa-solid fa-arrow-right"></i></button>`).join("")}\n</div>\n</div>\n</div>`;\n';
+            html += '}\n\nrenderPassage(currentId);\n<\/script>\n</body>\n</html>';
+
+            const blob = new Blob([html], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = name.replace(/\s+/g, '_') + '.json';
+            a.download = name.replace(/\s+/g, '_') + '.html';
+            document.body.appendChild(a);
             a.click();
-            URL.revokeObjectURL(url);
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
         }
 
         function deleteSavedProject(name, element) {
@@ -812,94 +874,84 @@
         }
 
         function exportStory() {
-            if (Object.keys(passages).length === 0) {
-                alert("Nothing to export yet!");
-                return;
+            try {
+                if (Object.keys(passages).length === 0) {
+                    alert("Nothing to export yet!");
+                    return;
+                }
+
+                const storyTitle = document.getElementById('story-title').value || "My Illustrated Story";
+
+                // Build exported HTML more safely
+                let exportedHTML = '<!DOCTYPE html>\n';
+                exportedHTML += '<html lang="en">\n<head>\n';
+                exportedHTML += '<meta charset="UTF-8">\n';
+                exportedHTML += '<title>' + storyTitle + '</title>\n';
+                exportedHTML += '<script src="https://cdn.tailwindcss.com"><\/script>\n';
+                exportedHTML += '<style>body { font-family: system-ui, sans-serif; background: #111827; color: #e5e7eb; } .passage { max-width: 720px; margin: 40px auto; background: #1f2937; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); }</style>\n';
+                exportedHTML += '</head>\n<body class="bg-zinc-950 text-zinc-200">\n';
+                exportedHTML += '<div class="max-w-3xl mx-auto p-6">\n';
+                exportedHTML += '<h1 class="text-4xl font-bold mb-8 text-center">' + storyTitle + '</h1>\n';
+                exportedHTML += '<div id="story-container"></div>\n';
+                exportedHTML += '</div>\n\n<script>\n';
+
+                // Embed the passages data
+                exportedHTML += 'const passages = ' + JSON.stringify(passages) + ';\n\n';
+                exportedHTML += 'let currentId = Object.keys(passages)[0];\n\n';
+
+                // Add the render function (simplified)
+                exportedHTML += 'function renderPassage(id) {\n';
+                exportedHTML += '  const passage = passages[id];\n';
+                exportedHTML += '  if (!passage) return;\n\n';
+                exportedHTML += '  let mediaHTML = "";\n';
+                exportedHTML += '  if (passage.media && passage.media.type === "video") {\n';
+                exportedHTML += '    mediaHTML = `<video src="${passage.media.data}" class="w-full" controls></video>`;\n';
+                exportedHTML += '  } else if (passage.image) {\n';
+                exportedHTML += '    mediaHTML = `<img src="${passage.image}" class="w-full">`;\n';
+                exportedHTML += '  }\n\n';
+                exportedHTML += '  let audioHTML = "";\n';
+                exportedHTML += '  if (passage.audio && passage.audio.data) {\n';
+                exportedHTML += '    const autoPlay = (passage.audio.autoPlay !== false) ? "autoplay" : "";\n';
+                exportedHTML += '    audioHTML = `<div class="px-8 pb-4"><audio src="${passage.audio.data}" ${autoPlay} controls class="w-full"></audio></div>`;\n';
+                exportedHTML += '  }\n\n';
+                exportedHTML += '  const container = document.getElementById("story-container");\n';
+                exportedHTML += '  container.innerHTML = `\n';
+                exportedHTML += '    <div class="passage">\n';
+                exportedHTML += '      ${mediaHTML}\n';
+                exportedHTML += '      <div class="p-8">\n';
+                exportedHTML += '        <h2 class="text-3xl font-semibold mb-4">${passage.title}</h2>\n';
+                exportedHTML += '        <div class="text-lg leading-relaxed whitespace-pre-line mb-4">${passage.text}</div>\n';
+                exportedHTML += '        ${audioHTML}\n';
+                exportedHTML += '        <div class="space-y-3">\n';
+                exportedHTML += '          ${(passage.choices || []).map(c => `\n';
+                exportedHTML += '            <button onclick="renderPassage(\'${c.next}\')" class="w-full text-left px-6 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-3xl flex justify-between items-center">\n';
+                exportedHTML += '              <span>${c.text}</span>\n';
+                exportedHTML += '              <i class="fa-solid fa-arrow-right"></i>\n';
+                exportedHTML += '            </button>`).join("")}\n';
+                exportedHTML += '        </div>\n';
+                exportedHTML += '      </div>\n';
+                exportedHTML += '    </div>`;\n';
+                exportedHTML += '}\n\n';
+                exportedHTML += 'renderPassage(currentId);\n';
+                exportedHTML += '<\/script>\n</body>\n</html>';
+
+                // Download
+                const blob = new Blob([exportedHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = storyTitle.replace(/\s+/g, '_') + '.html';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+
+            } catch (err) {
+                console.error("Export error:", err);
+                alert("Export failed. Please try again or use 'Save to Projects' + Export from My Projects as a workaround.");
             }
-
-            const storyTitle = document.getElementById('story-title').value || "My Illustrated Story";
-
-            // Create the final HTML
-            let html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>${storyTitle}</title>
-<script src="https://cdn.tailwindcss.com"><\/script>
-<style>
-body { font-family: system-ui, sans-serif; background: #111827; color: #e5e7eb; }
-.passage { max-width: 720px; margin: 40px auto; background: #1f2937; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); }
-</style>
-</head>
-<body class="bg-zinc-950 text-zinc-200">
-<div class="max-w-3xl mx-auto p-6">
-<h1 class="text-4xl font-bold mb-8 text-center">${storyTitle}</h1>
-<div id="story-container"></div>
-</div>
-
-<script>
-const passages = ${JSON.stringify(passages)};
-
-let currentId = Object.keys(passages)[0];
-
-function renderPassage(id) {
-    const passage = passages[id];
-    if (!passage) return;
-
-    let mediaHTML = '';
-    if (passage.media && passage.media.type === 'video') {
-        mediaHTML = \`<video src="\${passage.media.data}" class="w-full" controls></video>\`;
-    } else if (passage.image) {
-        mediaHTML = \`<img src="\${passage.image}" class="w-full">\`;
-    }
-
-    // Per-passage audio
-    let audioHTML = '';
-    if (passage.audio && passage.audio.data) {
-        const autoPlayAttr = (passage.audio.autoPlay !== false) ? 'autoplay' : '';
-        audioHTML = \`
-            <div class="px-8 pb-4">
-                <audio src="\${passage.audio.data}" ${autoPlayAttr} controls class="w-full"></audio>
-            </div>
-        \`;
-    }
-
-    const container = document.getElementById('story-container');
-    container.innerHTML = \`
-        <div class="passage">
-            \${mediaHTML}
-            <div class="p-8">
-                <h2 class="text-3xl font-semibold mb-4">\${passage.title}</h2>
-                <div class="text-lg leading-relaxed whitespace-pre-line mb-4">\${passage.text}</div>
-                \${audioHTML}
-                
-                <div class="space-y-3">
-                    \${(passage.choices || []).map(choice => \`
-                        <button onclick="renderPassage('\${choice.next}')" 
-                                class="w-full text-left px-6 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-3xl flex justify-between items-center">
-                            <span>\${choice.text}</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </button>
-                    \`).join('')}
-                </div>
-            </div>
-        </div>
-    \`;
-}
-
-renderPassage(currentId);
-<\/script>
-</body>
-</html>`;
-
-            // Download the file
-            const blob = new Blob([html], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = storyTitle.replace(/\s+/g, '_') + '.html';
-            a.click();
-            URL.revokeObjectURL(url);
         }
 
         // Initialize with one passage
